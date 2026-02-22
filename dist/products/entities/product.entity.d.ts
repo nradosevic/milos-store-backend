@@ -1,0 +1,34 @@
+import { Category } from '../../categories/entities/category.entity';
+import { Tag } from '../../tags/entities/tag.entity';
+import { ProductImage } from './product-image.entity';
+export declare class Product {
+    id: number;
+    title: string;
+    slug: string;
+    description: string;
+    shortDescription: string;
+    price: number;
+    priceOnRequest: boolean;
+    year: number;
+    condition: string;
+    origin: string;
+    dimensions: string;
+    material: string;
+    author: string;
+    publisher: string;
+    period: string;
+    hiddenFields: string[];
+    customFields: Record<string, string>;
+    isUnique: boolean;
+    stock: number;
+    isFeatured: boolean;
+    isActive: boolean;
+    isSold: boolean;
+    sortOrder: number;
+    category: Category;
+    categoryId: number;
+    images: ProductImage[];
+    tags: Tag[];
+    createdAt: Date;
+    updatedAt: Date;
+}
