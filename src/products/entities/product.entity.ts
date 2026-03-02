@@ -26,6 +26,9 @@ export class Product {
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   price: number;
 
+  @Column({ default: 'RSD' })
+  currency: string;
+
   @Column({ default: false })
   priceOnRequest: boolean;
 

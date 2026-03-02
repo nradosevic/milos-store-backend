@@ -24,6 +24,10 @@ export class CreateProductDto {
   price?: number;
 
   @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @IsOptional()
   @IsBoolean()
   priceOnRequest?: boolean;
 
