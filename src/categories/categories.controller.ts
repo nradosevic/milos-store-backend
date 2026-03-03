@@ -12,6 +12,11 @@ export class CategoriesController {
     return this.categoriesService.findTree();
   }
 
+  @Get('popular')
+  findPopular(@Query('limit') limit: number = 12) {
+    return this.categoriesService.findPopular(Number(limit));
+  }
+
   @Get(':slug')
   findBySlug(
     @Param('slug') slug: string,

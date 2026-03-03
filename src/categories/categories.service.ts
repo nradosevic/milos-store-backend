@@ -41,9 +41,30 @@ export class CategoriesService {
   private buildTree(categories: any[], parentId: number | null): any[] {
     return categories
       .filter((c) => c.parentId === parentId)
-      .map((c) => ({
-        ...c,
-        children: this.buildTree(categories, c.id),
+      .map((c) => {
+        const children = this.buildTree(categories, c.id);
+        const childrenCount = children.reduce((sum: number, ch: any) => sum + ch.productCount, 0);
+        return {
+          ...c,
+          productCount: c.productCount + childrenCount,
+          children,
+        };
+      });
+  }
+
+  async findPopular(limit: number = 12): Promise<any[]> {
+    const tree = await this.findTree();
+    // Return top-level categories that have products, sorted by productCount desc
+    return tree
+      .filter((c: any) => c.productCount > 0)
+      .sort((a: any, b: any) => b.productCount - a.productCount)
+      .slice(0, limit)
+      .map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        iconName: c.iconName,
+        productCount: c.productCount,
       }));
   }
 

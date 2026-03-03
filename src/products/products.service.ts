@@ -91,6 +91,15 @@ export class ProductsService {
     }));
   }
 
+  async findPopular(limit: number = 10): Promise<Product[]> {
+    return this.productRepository.find({
+      where: { isActive: true, isSold: false },
+      relations: ['images', 'category'],
+      order: { viewCount: 'DESC' },
+      take: limit,
+    });
+  }
+
   async findFeatured(): Promise<Product[]> {
     return this.productRepository.find({
       where: { isFeatured: true, isActive: true },
@@ -105,6 +114,9 @@ export class ProductsService {
       relations: ['images', 'category', 'tags'],
     });
     if (!product) throw new NotFoundException(`Product with slug "${slug}" not found`);
+
+    // Track view count (fire and forget, don't block the response)
+    this.productRepository.increment({ id: product.id }, 'viewCount', 1).catch(() => {});
 
     const breadcrumb: any[] = [];
     if (product.category) {

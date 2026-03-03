@@ -78,6 +78,9 @@ export class Product {
   isSold: boolean;
 
   @Column({ default: 0 })
+  viewCount: number;
+
+  @Column({ default: 0 })
   sortOrder: number;
 
   @ManyToOne(() => Category, (cat) => cat.products, { nullable: true, onDelete: 'SET NULL' })

@@ -18,6 +18,11 @@ export class ProductsController {
     return this.productsService.autocomplete(q);
   }
 
+  @Get('popular')
+  findPopular(@Query('limit') limit: number = 10) {
+    return this.productsService.findPopular(Number(limit));
+  }
+
   @Get('featured')
   findFeatured() {
     return this.productsService.findFeatured();
