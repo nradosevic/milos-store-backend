@@ -31,6 +31,7 @@ export class ProductsService {
       .leftJoinAndSelect('product.images', 'images')
       .leftJoinAndSelect('product.category', 'category')
       .leftJoinAndSelect('product.tags', 'tags')
+      .addOrderBy('images.sortOrder', 'ASC')
       .where('product.isActive = :isActive', { isActive: true });
 
     if (query.search) {
@@ -70,6 +71,24 @@ export class ProductsService {
 
     const [data, total] = await qb.skip(skip).take(limit).getManyAndCount();
     return { data, total, page, limit };
+  }
+
+  async autocomplete(q: string): Promise<{ id: number; title: string; slug: string; image: string | null }[]> {
+    if (!q || q.trim().length < 2) return [];
+    const products = await this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.images', 'images', 'images.isMain = true')
+      .where('product.isActive = :isActive', { isActive: true })
+      .andWhere('product.title ILIKE :q', { q: `%${q.trim()}%` })
+      .orderBy('product.title', 'ASC')
+      .take(8)
+      .getMany();
+    return products.map((p) => ({
+      id: p.id,
+      title: p.title,
+      slug: p.slug,
+      image: p.images?.[0]?.thumbnailS3Key || p.images?.[0]?.s3Key || null,
+    }));
   }
 
   async findFeatured(): Promise<Product[]> {
@@ -166,10 +185,40 @@ export class ProductsService {
     return this.productRepository.save(product);
   }
 
+  async getImageCount(productId: number): Promise<number> {
+    return this.imageRepository.count({ where: { productId } });
+  }
+
+  async hasMainImage(productId: number): Promise<boolean> {
+    const main = await this.imageRepository.findOne({ where: { productId, isMain: true } });
+    return !!main;
+  }
+
   async addImage(productId: number, imageData: Partial<ProductImage>): Promise<ProductImage> {
     await this.findById(productId);
     const image = this.imageRepository.create({ ...imageData, productId });
     return this.imageRepository.save(image);
+  }
+
+  async reorderImages(productId: number, imageIds: number[]): Promise<ProductImage[]> {
+    await this.findById(productId);
+    const images: ProductImage[] = [];
+    for (let i = 0; i < imageIds.length; i++) {
+      const image = await this.imageRepository.findOne({ where: { id: imageIds[i], productId } });
+      if (!image) throw new NotFoundException(`Image #${imageIds[i]} not found`);
+      image.sortOrder = i;
+      image.isMain = i === 0;
+      images.push(await this.imageRepository.save(image));
+    }
+    // Unset isMain on any images not in the list
+    await this.imageRepository
+      .createQueryBuilder()
+      .update()
+      .set({ isMain: false })
+      .where('productId = :productId AND id NOT IN (:...imageIds)', { productId, imageIds })
+      .execute()
+      .catch(() => {});
+    return images;
   }
 
   async updateImage(productId: number, imageId: number, data: Partial<ProductImage>): Promise<ProductImage> {

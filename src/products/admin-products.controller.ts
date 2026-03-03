@@ -48,19 +48,36 @@ export class AdminProductsController {
     @Param('id', ParseIntPipe) id: number,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
+    // Sort files by original filename so numbered files (1.jpg, 2.jpg, ...) keep order
+    const sorted = [...files].sort((a, b) =>
+      a.originalname.localeCompare(b.originalname, undefined, { numeric: true }),
+    );
+
+    const existingImages = await this.productsService.getImageCount(id);
+    const hasMain = await this.productsService.hasMainImage(id);
+
     const images: any[] = [];
-    for (const file of files) {
+    for (let i = 0; i < sorted.length; i++) {
+      const file = sorted[i];
       const { s3Key, thumbnailS3Key } = await this.uploadService.uploadProductImage(id, file);
       const image = await this.productsService.addImage(id, {
         s3Key,
         thumbnailS3Key,
         originalName: file.originalname,
-        isMain: false,
-        sortOrder: 0,
+        isMain: !hasMain && i === 0,
+        sortOrder: existingImages + i,
       });
       images.push(image);
     }
     return images;
+  }
+
+  @Patch(':id/images/reorder')
+  reorderImages(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { imageIds: number[] },
+  ) {
+    return this.productsService.reorderImages(id, body.imageIds);
   }
 
   @Patch(':id/images/:imageId')

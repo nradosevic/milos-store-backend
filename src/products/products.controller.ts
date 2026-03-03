@@ -13,6 +13,11 @@ export class ProductsController {
     return this.productsService.findAll(query);
   }
 
+  @Get('autocomplete')
+  autocomplete(@Query('q') q: string) {
+    return this.productsService.autocomplete(q);
+  }
+
   @Get('featured')
   findFeatured() {
     return this.productsService.findFeatured();

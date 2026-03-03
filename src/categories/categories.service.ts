@@ -110,10 +110,20 @@ export class CategoriesService {
     return ids;
   }
 
+  private async uniqueSlug(base: string, excludeId?: number): Promise<string> {
+    let slug = base;
+    let suffix = 2;
+    while (true) {
+      const existing = await this.categoryRepository.findOne({ where: { slug } });
+      if (!existing || existing.id === excludeId) return slug;
+      slug = `${base}-${suffix}`;
+      suffix++;
+    }
+  }
+
   async create(dto: CreateCategoryDto): Promise<Category> {
-    const slug = dto.slug || slugify(dto.name);
-    const existing = await this.categoryRepository.findOne({ where: { slug } });
-    if (existing) throw new BadRequestException(`Slug "${slug}" already exists`);
+    const baseSlug = dto.slug || slugify(dto.name);
+    const slug = await this.uniqueSlug(baseSlug);
 
     let depth = 0;
     if (dto.parentId) {
@@ -128,11 +138,10 @@ export class CategoriesService {
   async update(id: number, dto: UpdateCategoryDto): Promise<Category> {
     const category = await this.findById(id);
     if (dto.slug && dto.slug !== category.slug) {
-      const existing = await this.categoryRepository.findOne({ where: { slug: dto.slug } });
-      if (existing) throw new BadRequestException(`Slug "${dto.slug}" already exists`);
+      dto.slug = await this.uniqueSlug(dto.slug, id);
     }
     if (dto.name && !dto.slug) {
-      dto.slug = slugify(dto.name);
+      dto.slug = await this.uniqueSlug(slugify(dto.name), id);
     }
     if (dto.parentId !== undefined) {
       if (dto.parentId === id) throw new BadRequestException('Category cannot be its own parent');
@@ -170,9 +179,14 @@ export class CategoriesService {
   ): Promise<void> {
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      const slug = item.slug || slugify(item.name);
-      let category = await this.categoryRepository.findOne({ where: { slug } });
+      const baseSlug = item.slug || slugify(item.name);
+      // Match by slug and same parent to avoid merging unrelated categories
+      const parentWhere = parentId ? { parentId } : { parentId: IsNull() };
+      let category = await this.categoryRepository.findOne({
+        where: { slug: baseSlug, ...parentWhere },
+      });
       if (!category) {
+        const slug = await this.uniqueSlug(baseSlug);
         category = this.categoryRepository.create({
           name: item.name,
           slug,
@@ -189,7 +203,6 @@ export class CategoriesService {
         if (item.iconName !== undefined) category.iconName = item.iconName;
         category.depth = depth;
         category.sortOrder = i;
-        if (parentId !== null) category.parentId = parentId;
         category = await this.categoryRepository.save(category);
       }
       if (item.children && item.children.length > 0) {
