@@ -24,6 +24,11 @@ export class AdminProductsController {
     return this.productsService.findAll(query);
   }
 
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.productsService.findById(id);
+  }
+
   @Post()
   create(@Body() dto: CreateProductDto) {
     return this.productsService.create(dto);

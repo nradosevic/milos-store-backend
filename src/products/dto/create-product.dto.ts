@@ -1,6 +1,7 @@
 import {
   IsString, IsOptional, IsBoolean, IsNumber, IsArray, IsNotEmpty,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateProductDto {
   @IsString()
@@ -95,10 +96,15 @@ export class CreateProductDto {
   sortOrder?: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   categoryId?: number;
 
   @IsOptional()
   @IsArray()
   tags?: string[];
+
+  @IsOptional()
+  @IsArray()
+  tagIds?: string[];
 }

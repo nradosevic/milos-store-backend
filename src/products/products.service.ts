@@ -150,15 +150,26 @@ export class ProductsService {
     return product;
   }
 
+  private async resolveTags(dto: CreateProductDto | UpdateProductDto): Promise<import('../tags/entities/tag.entity').Tag[] | undefined> {
+    if (dto.tagIds !== undefined && dto.tagIds.length > 0) {
+      return this.tagsService.findByIds(dto.tagIds);
+    }
+    if (dto.tags !== undefined) {
+      return Promise.all(dto.tags.map((name) => this.tagsService.findOrCreate(name)));
+    }
+    return undefined;
+  }
+
   async create(dto: CreateProductDto): Promise<Product> {
     const slug = dto.slug || slugify(dto.title);
     const existing = await this.productRepository.findOne({ where: { slug } });
     if (existing) throw new BadRequestException(`Slug "${slug}" already exists`);
 
-    const tags = dto.tags ? await Promise.all(dto.tags.map((name) => this.tagsService.findOrCreate(name))) : [];
+    const tags = (await this.resolveTags(dto)) || [];
 
+    const { tags: _t, tagIds: _ti, ...rest } = dto;
     const product = this.productRepository.create({
-      ...dto,
+      ...rest,
       slug,
       tags,
     });
@@ -176,11 +187,17 @@ export class ProductsService {
       dto.slug = slugify(dto.title);
     }
 
-    if (dto.tags !== undefined) {
-      product.tags = await Promise.all(dto.tags.map((name) => this.tagsService.findOrCreate(name)));
+    const resolvedTags = await this.resolveTags(dto);
+    if (resolvedTags !== undefined) {
+      product.tags = resolvedTags;
     }
 
-    const { tags, ...rest } = dto;
+    // Clear the loaded category relation so TypeORM uses the new categoryId
+    if (dto.categoryId !== undefined) {
+      product.category = null as any;
+    }
+
+    const { tags, tagIds, ...rest } = dto;
     Object.assign(product, rest);
     return this.productRepository.save(product);
   }
