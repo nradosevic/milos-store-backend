@@ -25,21 +25,22 @@ export class SitemapService {
     });
 
     const urls: string[] = [
-      `<url><loc>${baseUrl}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
-      `<url><loc>${baseUrl}/products</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`,
-      `<url><loc>${baseUrl}/faq</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>`,
-      `<url><loc>${baseUrl}/contact</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>`,
+      `<url><loc>${baseUrl}</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
+      `<url><loc>${baseUrl}/prodavnica</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`,
+      `<url><loc>${baseUrl}/kontakt</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>`,
     ];
 
     for (const product of products) {
+      const lastmod = product.updatedAt.toISOString().split('T')[0];
       urls.push(
-        `<url><loc>${baseUrl}/products/${product.slug}</loc><lastmod>${product.updatedAt.toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`,
+        `<url><loc>${baseUrl}/proizvod/${product.slug}</loc><lastmod>${lastmod}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`,
       );
     }
 
     for (const category of categories) {
+      const lastmod = category.updatedAt.toISOString().split('T')[0];
       urls.push(
-        `<url><loc>${baseUrl}/categories/${category.slug}</loc><lastmod>${category.updatedAt.toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`,
+        `<url><loc>${baseUrl}/prodavnica?kategorija=${category.slug}</loc><lastmod>${lastmod}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`,
       );
     }
 
