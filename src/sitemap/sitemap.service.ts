@@ -33,7 +33,7 @@ export class SitemapService {
     for (const product of products) {
       const lastmod = product.updatedAt.toISOString().split('T')[0];
       urls.push(
-        `<url><loc>${baseUrl}/proizvod/${product.slug}</loc><lastmod>${lastmod}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`,
+        `<url><loc>${baseUrl}/predmet/${product.slug}</loc><lastmod>${lastmod}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`,
       );
     }
 
