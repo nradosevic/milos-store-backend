@@ -202,6 +202,12 @@ export class ProductsService {
     return this.productRepository.save(product);
   }
 
+  async reorderFeatured(productIds: number[]): Promise<void> {
+    for (let i = 0; i < productIds.length; i++) {
+      await this.productRepository.update(productIds[i], { sortOrder: i });
+    }
+  }
+
   async remove(id: number): Promise<void> {
     const product = await this.findById(id);
     await this.productRepository.remove(product);

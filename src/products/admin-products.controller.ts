@@ -44,6 +44,11 @@ export class AdminProductsController {
     return this.productsService.remove(id);
   }
 
+  @Patch('reorder-featured')
+  reorderFeatured(@Body() body: { productIds: number[] }) {
+    return this.productsService.reorderFeatured(body.productIds);
+  }
+
   @Patch(':id/mark-sold')
   markSold(@Param('id', ParseIntPipe) id: number) {
     return this.productsService.markSold(id);
