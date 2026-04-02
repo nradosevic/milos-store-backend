@@ -213,6 +213,7 @@ export class SeedService {
       { key: 'about_text', value: 'Rariteti.rs je specijalizovana prodavnica vintage i antiknih predmeta iz Srbije i regiona.', type: 'textarea' },
       { key: 'hero_title', value: 'Otkrijte jedinstvene vintage predmete', type: 'text' },
       { key: 'hero_subtitle', value: 'Autentični antikviteti sa pričom', type: 'text' },
+      { key: 'showNewestOnHome', value: 'true', type: 'boolean' },
     ];
 
     for (const s of defaultSettings) {
