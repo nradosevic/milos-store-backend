@@ -192,14 +192,18 @@ export class ProductsService {
       product.tags = resolvedTags;
     }
 
-    // Clear the loaded category relation so TypeORM uses the new categoryId
-    if (dto.categoryId !== undefined) {
-      product.category = null as any;
+    const { tags, tagIds, ...rest } = dto;
+
+    // Use a plain update query for the scalar fields to avoid TypeORM
+    // relation conflicts (loaded category object overriding categoryId)
+    await this.productRepository.update(product.id, rest);
+
+    // Save tags separately since they're a many-to-many relation
+    if (resolvedTags !== undefined) {
+      await this.productRepository.save(product);
     }
 
-    const { tags, tagIds, ...rest } = dto;
-    Object.assign(product, rest);
-    return this.productRepository.save(product);
+    return this.findById(product.id);
   }
 
   async reorderFeatured(productIds: number[]): Promise<void> {
