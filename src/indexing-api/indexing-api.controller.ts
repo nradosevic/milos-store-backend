@@ -77,8 +77,13 @@ export class IndexingApiController {
   }
 
   @Post('admin/indexing-api/run-backfill')
-  async runBackfill(@Body() body: { max?: number }) {
+  runBackfill(@Body() body: { max?: number }) {
     const max = Math.min(Math.max(body.max ?? 200, 1), 200);
-    return this.service.runBackfillBatch(max);
+    // Fire-and-forget — a 200-URL batch takes ~140s, longer than Cloudflare's
+    // 100s proxy timeout. Return immediately and let the batch run on the server.
+    this.service.runBackfillBatch(max).catch(() => {
+      /* logged inside the service */
+    });
+    return { started: true, max };
   }
 }
