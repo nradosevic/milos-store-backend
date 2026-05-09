@@ -8,6 +8,7 @@ import { AdminProductsController } from './admin-products.controller';
 import { TagsModule } from '../tags/tags.module';
 import { CategoriesModule } from '../categories/categories.module';
 import { UploadModule } from '../upload/upload.module';
+import { IndexingApiModule } from '../indexing-api/indexing-api.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { UploadModule } from '../upload/upload.module';
     TagsModule,
     CategoriesModule,
     UploadModule,
+    IndexingApiModule,
   ],
   controllers: [ProductsController, AdminProductsController],
   providers: [ProductsService],

@@ -8,6 +8,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { QueryProductsDto } from './dto/query-products.dto';
 import { TagsService } from '../tags/tags.service';
 import { CategoriesService } from '../categories/categories.service';
+import { IndexingApiService } from '../indexing-api/indexing-api.service';
 import { slugify } from '../common/utils/slugify';
 
 @Injectable()
@@ -19,7 +20,18 @@ export class ProductsService {
     private imageRepository: Repository<ProductImage>,
     private tagsService: TagsService,
     private categoriesService: CategoriesService,
+    private indexingApi: IndexingApiService,
   ) {}
+
+  private notifyIndex(slug: string, type: 'update' | 'delete' = 'update'): void {
+    const promise =
+      type === 'delete'
+        ? this.indexingApi.submitProductDelete(slug)
+        : this.indexingApi.submitProductUpdate(slug);
+    promise.catch(() => {
+      /* swallow — never let indexing failure block the actual operation */
+    });
+  }
 
   async findAll(query: QueryProductsDto): Promise<{ data: Product[]; total: number; page: number; limit: number }> {
     const page = query.page || 1;
@@ -173,7 +185,9 @@ export class ProductsService {
       slug,
       tags,
     });
-    return this.productRepository.save(product);
+    const saved = await this.productRepository.save(product);
+    this.notifyIndex(saved.slug, 'update');
+    return saved;
   }
 
   async update(id: number, dto: UpdateProductDto): Promise<Product> {
@@ -203,7 +217,9 @@ export class ProductsService {
       await this.productRepository.save(product);
     }
 
-    return this.findById(product.id);
+    const fresh = await this.findById(product.id);
+    this.notifyIndex(fresh.slug, 'update');
+    return fresh;
   }
 
   async reorderFeatured(productIds: number[]): Promise<void> {
@@ -214,14 +230,18 @@ export class ProductsService {
 
   async remove(id: number): Promise<void> {
     const product = await this.findById(id);
+    const slug = product.slug;
     await this.productRepository.remove(product);
+    this.notifyIndex(slug, 'delete');
   }
 
   async markSold(id: number): Promise<Product> {
     const product = await this.findById(id);
     product.isSold = true;
     product.stock = 0;
-    return this.productRepository.save(product);
+    const saved = await this.productRepository.save(product);
+    this.notifyIndex(saved.slug, 'update');
+    return saved;
   }
 
   async getImageCount(productId: number): Promise<number> {

@@ -102,4 +102,7 @@ export class Product {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastIndexedAt: Date | null;
 }

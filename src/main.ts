@@ -17,7 +17,11 @@ async function bootstrap() {
   );
 
   app.setGlobalPrefix('api', {
-    exclude: ['sitemap.xml'],
+    exclude: [
+      'sitemap.xml',
+      'admin/indexing-oauth/start',
+      'admin/indexing-oauth/callback',
+    ],
   });
 
   const seedService = app.get(SeedService);
