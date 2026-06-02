@@ -9,6 +9,7 @@ import { SiteSettings } from '../settings/entities/site-settings.entity';
 
 const REFRESH_TOKEN_KEY = 'google_indexing_refresh_token';
 const INDEXING_SCOPE = 'https://www.googleapis.com/auth/indexing';
+const WEBMASTERS_SCOPE = 'https://www.googleapis.com/auth/webmasters.readonly';
 const SITE_URL_DEFAULT = 'https://rariteti.rs';
 
 export interface SubmitResult {
@@ -67,8 +68,12 @@ export class IndexingApiService {
     return oauth2.generateAuthUrl({
       access_type: 'offline',
       prompt: 'consent',
-      scope: [INDEXING_SCOPE],
+      scope: [INDEXING_SCOPE, WEBMASTERS_SCOPE],
     });
+  }
+
+  async getAuthorizedClient(): Promise<OAuth2Client> {
+    return this.getOAuthClient();
   }
 
   async exchangeCode(code: string): Promise<void> {

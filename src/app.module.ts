@@ -17,6 +17,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { SitemapModule } from './sitemap/sitemap.module';
 import { SeedModule } from './seed/seed.module';
 import { IndexingApiModule } from './indexing-api/indexing-api.module';
+import { GscReportModule } from './gsc-report/gsc-report.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 
 @Module({
@@ -39,6 +40,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
     DashboardModule,
     SitemapModule,
     IndexingApiModule,
+    GscReportModule,
     SeedModule,
   ],
   providers: [
