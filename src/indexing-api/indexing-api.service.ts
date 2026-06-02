@@ -1,7 +1,7 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { Repository, IsNull, LessThan } from 'typeorm';
+import { Repository, IsNull, LessThan, Not } from 'typeorm';
 import { google } from 'googleapis';
 import type { OAuth2Client } from 'google-auth-library';
 import { Product } from '../products/entities/product.entity';
@@ -235,7 +235,7 @@ export class IndexingApiService {
       where: { isActive: true },
     });
     const indexed = await this.productRepository.count({
-      where: { isActive: true, lastIndexedAt: LessThan(new Date(8640000000000000)) },
+      where: { isActive: true, lastIndexedAt: Not(IsNull()) },
     });
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const stale = await this.productRepository.count({
