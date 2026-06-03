@@ -72,7 +72,7 @@ export class GscReportService {
 
   private get sendgridFrom(): { email: string; name: string } {
     return {
-      email: this.config.get<string>('SENDGRID_FROM_EMAIL') ?? 'noreply@yooop.app',
+      email: this.config.get<string>('SENDGRID_FROM_EMAIL') ?? 'noreply@rariteti.rs',
       name: this.config.get<string>('SENDGRID_FROM_NAME') ?? 'Rariteti.rs Indexing',
     };
   }
