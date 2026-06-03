@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Repository, IsNull, Not } from 'typeorm';
 import { google, webmasters_v3 } from 'googleapis';
-import * as nodemailer from 'nodemailer';
 import { IndexingApiService } from '../indexing-api/indexing-api.service';
 import { Product } from '../products/entities/product.entity';
 
@@ -67,8 +66,23 @@ export class GscReportService {
     return this.config.get<string>('GSC_REPORT_TO') ?? '';
   }
 
+  private get sendgridApiKey(): string {
+    return this.config.get<string>('SENDGRID_API_KEY') ?? '';
+  }
+
+  private get sendgridFrom(): { email: string; name: string } {
+    return {
+      email: this.config.get<string>('SENDGRID_FROM_EMAIL') ?? 'noreply@yooop.app',
+      name: this.config.get<string>('SENDGRID_FROM_NAME') ?? 'Rariteti.rs Indexing',
+    };
+  }
+
   isConfigured(): boolean {
-    return Boolean(this.reportTo) && this.indexingApi.isConfigured();
+    return (
+      Boolean(this.reportTo) &&
+      Boolean(this.sendgridApiKey) &&
+      this.indexingApi.isConfigured()
+    );
   }
 
   async buildReport(): Promise<CoverageReport> {
@@ -200,38 +214,32 @@ export class GscReportService {
     if (!this.reportTo) {
       throw new BadRequestException('GSC_REPORT_TO not set');
     }
-    const transporter = this.buildTransporter();
-    const from = this.config.get<string>('SMTP_FROM') ?? this.config.get<string>('SMTP_USER');
-    if (!from) {
-      throw new BadRequestException('SMTP_FROM or SMTP_USER not set');
+    if (!this.sendgridApiKey) {
+      throw new BadRequestException('SENDGRID_API_KEY not set');
     }
 
     const html = this.renderHtml(report);
-    await transporter.sendMail({
-      from,
-      to: this.reportTo,
-      subject: `[Rariteti.rs] Indexing report — ${report.generatedAt.slice(0, 10)}`,
-      html,
-    });
-    this.logger.log(`Coverage report sent to ${this.reportTo}`);
-  }
+    const subject = `[Rariteti.rs] Indexing report — ${report.generatedAt.slice(0, 10)}`;
 
-  private buildTransporter(): nodemailer.Transporter {
-    const host = this.config.get<string>('SMTP_HOST');
-    if (!host) {
-      throw new BadRequestException(
-        'SMTP_HOST not set — cannot send report email',
-      );
-    }
-    return nodemailer.createTransport({
-      host,
-      port: Number(this.config.get<string>('SMTP_PORT') ?? 587),
-      secure: this.config.get<string>('SMTP_SECURE') === 'true',
-      auth: {
-        user: this.config.get<string>('SMTP_USER') ?? '',
-        pass: this.config.get<string>('SMTP_PASS') ?? '',
+    const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.sendgridApiKey}`,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: this.reportTo }] }],
+        from: this.sendgridFrom,
+        subject,
+        content: [{ type: 'text/html', value: html }],
+      }),
     });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`SendGrid ${res.status}: ${body.slice(0, 300)}`);
+    }
+    this.logger.log(`Coverage report sent to ${this.reportTo} via SendGrid`);
   }
 
   private renderHtml(r: CoverageReport): string {

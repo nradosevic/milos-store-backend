@@ -9,7 +9,9 @@ import { SiteSettings } from '../settings/entities/site-settings.entity';
 
 const REFRESH_TOKEN_KEY = 'google_indexing_refresh_token';
 const INDEXING_SCOPE = 'https://www.googleapis.com/auth/indexing';
-const WEBMASTERS_SCOPE = 'https://www.googleapis.com/auth/webmasters.readonly';
+// Full webmasters scope (not readonly) — we need write access to submit
+// the sitemap to Search Console, plus read access for the coverage report.
+const WEBMASTERS_SCOPE = 'https://www.googleapis.com/auth/webmasters';
 const SITE_URL_DEFAULT = 'https://rariteti.rs';
 
 export interface SubmitResult {
@@ -92,6 +94,18 @@ export class IndexingApiService {
     await this.upsertSetting(REFRESH_TOKEN_KEY, tokens.refresh_token);
     this.cachedClient = null;
     this.logger.log('Stored Google Indexing refresh token');
+
+    // First-connect convenience: register the sitemap with Search Console so
+    // the user doesn't have to click into the GSC UI separately. Idempotent —
+    // GSC dedupes on URL.
+    try {
+      const result = await this.submitSitemap();
+      if (result.ok) {
+        this.logger.log('Auto-submitted sitemap to Search Console after connect');
+      }
+    } catch {
+      // Non-fatal; user can retry from /api/admin/indexing-api/submit-sitemap.
+    }
   }
 
   async hasRefreshToken(): Promise<boolean> {
@@ -226,6 +240,30 @@ export class IndexingApiService {
       failed,
       quotaExhausted,
     };
+  }
+
+  async submitSitemap(): Promise<{ ok: boolean; status?: number; error?: string }> {
+    if (!this.isConfigured()) return { ok: false, error: 'not_configured' };
+    if (!(await this.hasRefreshToken())) {
+      return { ok: false, error: 'oauth_not_connected' };
+    }
+    try {
+      const auth = await this.getOAuthClient();
+      const webmasters = google.webmasters({ version: 'v3', auth });
+      const siteUrl =
+        this.config.get<string>('GSC_SITE_URL') ?? `${this.siteUrl}/`;
+      const feedpath =
+        this.config.get<string>('GSC_SITEMAP_URL') ?? `${this.siteUrl}/sitemap.xml`;
+      await webmasters.sitemaps.submit({ siteUrl, feedpath });
+      this.logger.log(`Submitted sitemap ${feedpath} to GSC property ${siteUrl}`);
+      return { ok: true };
+    } catch (err: any) {
+      const status = err?.code ?? err?.response?.status;
+      const message =
+        err?.response?.data?.error?.message ?? err?.message ?? String(err);
+      this.logger.warn(`Sitemap submit failed (${status}): ${message}`);
+      return { ok: false, status, error: message };
+    }
   }
 
   async getStatus(): Promise<{

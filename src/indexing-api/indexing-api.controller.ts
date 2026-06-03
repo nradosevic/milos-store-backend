@@ -76,6 +76,11 @@ export class IndexingApiController {
     throw new BadRequestException('Provide either { slug } or { url }');
   }
 
+  @Post('admin/indexing-api/submit-sitemap')
+  submitSitemap() {
+    return this.service.submitSitemap();
+  }
+
   @Post('admin/indexing-api/run-backfill')
   runBackfill(@Body() body: { max?: number }) {
     const max = Math.min(Math.max(body.max ?? 200, 1), 200);
