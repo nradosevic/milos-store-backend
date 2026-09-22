@@ -44,7 +44,7 @@
     "rxjs": "^7.8.1",
     "sharp": "^0.34.5",
     "typeorm": "^0.3.28",
-    "undici": "^8.11.0"
+    "undici": "^6.28.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
